@@ -83,7 +83,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatID);
         switch (messageText) {
             case "/start" -> {
-
+                System.out.println("working!!");
             }
             case "/help" -> {
             }

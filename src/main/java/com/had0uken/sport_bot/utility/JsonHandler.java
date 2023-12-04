@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public class JsonHandler {
             String teamId = teamNode.path("Tid").asText();
             String teamName = teamNode.path("Tnm").asText();
 
-            teams.add(new Team(teamId, teamName, league));
+            teams.add(new Team(teamId, teamName, league,new HashSet<>()));
         }
 
         // Now 'teams' list contains the extracted Team objects

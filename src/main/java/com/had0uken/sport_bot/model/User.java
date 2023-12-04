@@ -1,7 +1,6 @@
 package com.had0uken.sport_bot.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +10,9 @@ import java.sql.Timestamp;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -23,14 +25,22 @@ public class User implements Serializable {
     private static final long serialVersionUID = -3423040518283131848L;
 
     @Id
+    @Column(name = "CHAT_ID")
     private Long chatId;
-
+    @Column(name = "FIRST_NAME")
     private String firstName;
-
+    @Column(name = "LAST_NAME")
     private String lastName;
-
+    @Column(name = "USERNAME")
     private String username;
-
+    @Column(name = "TIMESTAMP")
     private Timestamp registeredAt;
 
+    @ManyToMany(cascade = { CascadeType.ALL })
+    @JoinTable(
+            name = "user_team",
+            joinColumns = { @JoinColumn(name = "user_chat_id") },
+            inverseJoinColumns = { @JoinColumn(name = "team_id") }
+    )
+    private Set<Team> teams = new HashSet<>();
 }

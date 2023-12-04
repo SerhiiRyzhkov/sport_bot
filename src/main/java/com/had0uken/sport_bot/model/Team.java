@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Builder
@@ -31,6 +33,8 @@ public class Team implements Serializable {
     @JoinColumn(name = "LEAGUE_ID", referencedColumnName = "LEAGUE_ID")
     private League league;
 
+    @ManyToMany(mappedBy = "teams")
+    private Set<User> users = new HashSet<>();
     @Override
     public String toString() {
         return "Team{" +

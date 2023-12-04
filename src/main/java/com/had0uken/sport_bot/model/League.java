@@ -25,37 +25,40 @@ public class League implements Serializable {
     private static final long serialVersionUID = 5787545020193329483L;
 
     @JsonProperty("Sid")
-    @Column(name = "league_id")
+    @Column(name = "LEAGUE_ID")
     @Id
     private Long league_id;
 
     @JsonProperty("Cnm")
-    @Column(name = "league_name")
+    @Column(name = "LEAGUE_NAME")
     private String league_name;
 
 
     @JsonProperty("Scd")
-    @Column(name = "league_code")
+    @Column(name = "LEAGUE_CODE")
     private String league_code;
 
     @JsonProperty("Cid")
-    @Column(name = "country_id")
+    @Column(name = "COUNTRY_ID")
     private Long country_id;
 
     @JsonProperty("Ccd")
-    @Column(name = "country_code")
+    @Column(name = "COUNTRY_CODE")
     private String country_code;
 
     @JsonProperty("CompId")
-    @Column(name = "competition_id")
+    @Column(name = "COMPETITION_ID")
     private Long competition_id;
 
     @JsonProperty("CompN")
-    @Column(name = "competition_name")
+    @Column(name = "COMPETITION_NAME")
     private String competition_name;
 
 
     @JsonProperty("Sdn")
-    @Column(name = "stage_name")
+    @Column(name = "STAGE_NAME")
     private String stage_name;
+
+    @OneToMany(mappedBy = "league")
+    private List<Team> teams;
 }

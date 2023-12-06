@@ -27,9 +27,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void delete(Long chatId) {
+    public String delete(Long chatId) {
         Optional<User> userOptional = userRepository.findById(chatId);
-        userOptional.ifPresent(user -> userRepository.delete(user));
+        if(userOptional.isPresent()){
+            userRepository.delete(userOptional.get());
+            return "We deleted all your data";
+        }
+        else {
+            return "We do not keep any of your data";
+        }
     }
 
     @Override

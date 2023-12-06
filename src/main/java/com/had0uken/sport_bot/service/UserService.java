@@ -8,7 +8,7 @@ public interface UserService {
     boolean isExist(Long chatId);
     void save(User user);
 
-    void delete(Long chatId);
+    String delete(Long chatId);
 
     String getData(long chatId);
 }

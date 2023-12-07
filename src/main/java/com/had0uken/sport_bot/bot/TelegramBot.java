@@ -103,7 +103,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             if(callbackQuery.getData().matches("league_\\d+"))handleLeague(callbackQuery, editMessageText);
             if(callbackQuery.getData().matches("team_\\d+"))handleTeam(callbackQuery,editMessageText);
-
+            if(callbackQuery.getData().matches("del_team_\\d+"))deleteTeamFromUserList(callbackQuery,editMessageText);
             switch (callbackQuery.getData()) {
                 case BACK_BUTTON -> {
                     handleBackButton(callbackQuery,editMessageText);
@@ -115,6 +115,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 case "deleteTeam" -> {
                     //deleteTeam(callbackQuery, editMessageText);
+                    deleteTeam(callbackQuery,editMessageText);
                 }
 
                 case "viewTeam" -> {
@@ -127,6 +128,22 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
     }
+
+    private void deleteTeamFromUserList(CallbackQuery callbackQuery, EditMessageText editMessageText) {
+        User user = extractUser(callbackQuery);
+        Long id = Long.valueOf(callbackQuery.getData().substring(9));
+        Optional<Team> teamOptional = teamService.getTeamById(id);
+        teamOptional.ifPresent(team -> userService.deleteTeam(user, team));
+        handleBackButton(callbackQuery,editMessageText);
+    }
+
+    private void deleteTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
+        editMessageText.setText("Select team to delete");
+        editMessageText.setReplyMarkup(getButtonsUserTeam(extractUser(callbackQuery)));
+        execute(editMessageText);
+    }
+
+
 
     private void addTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
         editMessageText.setText("Select country:");
@@ -298,6 +315,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         return markup;
     }
 
+    private InlineKeyboardMarkup getButtonsUserTeam(User user) {
+        List<Team> teams = user.getTeams();
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        for(Team t: teams)
+        {
+            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(t.getTEAM_NAME());
+            button.setCallbackData("del_team_"+t.getTEAM_ID());
+            rowInLine.add(button);
+            rowsInline.add(rowInLine);
+        }
+        rowsInline.add(getBackButton());
+        markup.setKeyboard(rowsInline);
+        return markup;
+    }
+
     private List<InlineKeyboardButton> getBackButton() {
         List<InlineKeyboardButton> backButtonList = new ArrayList<>();
         InlineKeyboardButton button = new InlineKeyboardButton();
@@ -305,6 +340,25 @@ public class TelegramBot extends TelegramLongPollingBot {
         button.setCallbackData(BACK_BUTTON);
         backButtonList.add(button);
         return backButtonList;
+    }
+
+    private User extractUser(CallbackQuery callbackQuery){
+        ChatMember chatMember = null;
+        try {
+            long userID = callbackQuery.getFrom().getId();
+            long chatId = callbackQuery.getMessage().getChatId();
+            GetChatMember getChatMember = new GetChatMember();
+            getChatMember.setChatId(chatId);
+            getChatMember.setUserId(userID);
+            chatMember = execute(getChatMember);
+
+        }
+        catch (TelegramApiException e) {
+            log.error(ERROR_TEXT + e.getMessage());
+        }
+        Long id = chatMember.getUser().getId();
+        Optional<User> userOptional = userService.getUserById(id);
+        return userOptional.orElse(null);
     }
 }
 

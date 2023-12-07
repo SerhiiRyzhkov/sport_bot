@@ -15,4 +15,6 @@ public interface UserService {
     String getData(long chatId);
 
     void addTeam(User user, Team team);
+
+    void deleteTeam(User user, Team team);
 }

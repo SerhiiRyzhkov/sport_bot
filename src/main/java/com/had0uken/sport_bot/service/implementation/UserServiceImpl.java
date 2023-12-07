@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -62,6 +63,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public void addTeam(User user, Team team) {
         if(!user.getTeams().contains(team))user.getTeams().add(team);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void deleteTeam(User user, Team team) {
+        user.getTeams().remove(team);
         userRepository.save(user);
     }
 

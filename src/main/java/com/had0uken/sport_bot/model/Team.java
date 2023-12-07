@@ -7,6 +7,7 @@ import lombok.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -40,5 +41,18 @@ public class Team implements Serializable {
         return "Team{" +
                 "TEAM_NAME='" + TEAM_NAME + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Team team = (Team) o;
+        return Objects.equals(TEAM_ID, team.TEAM_ID);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(TEAM_ID);
     }
 }

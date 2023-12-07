@@ -2,10 +2,12 @@ package com.had0uken.sport_bot.bot;
 
 import com.had0uken.sport_bot.config.BotConfig;
 import com.had0uken.sport_bot.model.League;
+import com.had0uken.sport_bot.model.Team;
 import com.had0uken.sport_bot.model.User;
 import com.had0uken.sport_bot.repository.LeagueRepository;
 import com.had0uken.sport_bot.repository.UserRepository;
 import com.had0uken.sport_bot.service.LeagueService;
+import com.had0uken.sport_bot.service.TeamService;
 import com.had0uken.sport_bot.service.UserService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -39,6 +42,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     private LeagueService leagueService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private TeamService teamService;
     private final BotConfig config;
     private static final String ERROR_TEXT = "Error occurred: ";
 
@@ -88,14 +93,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(update.hasMessage() && update.getMessage().hasText())
             handleCommand(update);
         else if(update.hasCallbackQuery()){
-            System.out.println(update.getCallbackQuery().getData());
-
             CallbackQuery callbackQuery = update.getCallbackQuery();
+
             long messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             EditMessageText editMessageText = new EditMessageText();
             editMessageText.setMessageId((int) messageId);
             editMessageText.setChatId(chatId);
+
+            if(callbackQuery.getData().matches("league_\\d+"))handleLeague(callbackQuery, editMessageText);
+            if(callbackQuery.getData().matches("team_\\d+"))handleTeam(callbackQuery,editMessageText);
 
             switch (callbackQuery.getData()) {
                 case BACK_BUTTON -> {
@@ -125,6 +132,46 @@ public class TelegramBot extends TelegramLongPollingBot {
         editMessageText.setText("Select country:");
         editMessageText.setReplyMarkup(getButtonsLeagues());
         execute(editMessageText);
+    }
+
+
+    private void handleLeague(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
+        editMessageText.setText("Select a team");
+        Long id = Long.valueOf(callbackQuery.getData().substring(7));
+        Optional<League> leagueOptional = leagueService.getLeagueById(id);
+        if(leagueOptional.isPresent()){
+            editMessageText.setReplyMarkup(getButtonsTeams(leagueOptional.get()));
+        }
+        else {
+            handleBackButton(callbackQuery,editMessageText);
+        }
+        execute(editMessageText);
+    }
+
+    private void handleTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) {
+        long userID = callbackQuery.getFrom().getId();
+        long chatId = callbackQuery.getMessage().getChatId();
+        GetChatMember getChatMember = new GetChatMember();
+        getChatMember.setChatId(chatId);
+        getChatMember.setUserId(userID);
+        try {
+            ChatMember chatMember = execute(getChatMember);
+            Long id = chatMember.getUser().getId();
+            Optional<User> userOptional = userService.getUserById(id);
+            if(userOptional.isPresent()){
+                saveTeam(callbackQuery,userOptional.get(),editMessageText);
+            }
+        }
+        catch (TelegramApiException e) {
+        log.error(ERROR_TEXT + e.getMessage());
+        }
+        handleBackButton(callbackQuery,editMessageText);
+
+    }
+    private void saveTeam(CallbackQuery callbackQuery, User user, EditMessageText editMessageText) throws TelegramApiException {
+        Optional<Team> teamOptional = teamService.getTeamById(Long.valueOf(callbackQuery.getData().substring(5)));
+        teamOptional.ifPresent(team -> userService.addTeam(user, team));
+        handleBackButton(callbackQuery,editMessageText);
     }
 
     private void handleBackButton(CallbackQuery callbackQuery, EditMessageText editMessageText) {
@@ -182,7 +229,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         if(!userService.isExist(message.getChatId())) {
             Chat chat = message.getChat();
             User user = new User(message.getChatId(), chat.getFirstName(), chat.getLastName(),
-                    chat.getUserName(), new java.sql.Timestamp(System.currentTimeMillis()),new HashSet<>());
+                    chat.getUserName(), new java.sql.Timestamp(System.currentTimeMillis()),new ArrayList<>());
             userService.save(user);
             log.info("user saved: " + user);
         }
@@ -225,6 +272,24 @@ public class TelegramBot extends TelegramLongPollingBot {
             InlineKeyboardButton button = new InlineKeyboardButton();
             button.setText(l.getLeague_name());
             button.setCallbackData("league_"+l.getLeague_id());
+            rowInLine.add(button);
+            rowsInline.add(rowInLine);
+        }
+        rowsInline.add(getBackButton());
+        markup.setKeyboard(rowsInline);
+        return markup;
+    }
+
+    private InlineKeyboardMarkup getButtonsTeams(League league){
+        List<Team> teams = league.getTeams();
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        for(Team t: teams)
+        {
+            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(t.getTEAM_NAME());
+            button.setCallbackData("team_"+t.getTEAM_ID());
             rowInLine.add(button);
             rowsInline.add(rowInLine);
         }

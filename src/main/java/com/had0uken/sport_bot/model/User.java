@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,11 +37,21 @@ public class User implements Serializable {
     @Column(name = "TIMESTAMP")
     private Timestamp registeredAt;
 
-    @ManyToMany(cascade = { CascadeType.ALL })
+    @ManyToMany(cascade = { CascadeType.ALL }, fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_team",
             joinColumns = { @JoinColumn(name = "user_chat_id") },
             inverseJoinColumns = { @JoinColumn(name = "team_id") }
     )
-    private Set<Team> teams = new HashSet<>();
+    private List<Team> teams = new ArrayList<>();
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "chatId=" + chatId +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", username='" + username + '\'' +
+                '}';
+    }
 }

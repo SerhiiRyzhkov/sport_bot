@@ -26,7 +26,7 @@ public class JsonHandler {
 
         while (teamIterator.hasNext()) {
             JsonNode teamNode = teamIterator.next();
-            String teamId = teamNode.path("Tid").asText();
+            Long teamId = Long.valueOf(teamNode.path("Tid").asText());
             String teamName = teamNode.path("Tnm").asText();
 
             teams.add(new Team(teamId, teamName, league,new HashSet<>()));

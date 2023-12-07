@@ -22,7 +22,7 @@ public class Team implements Serializable {
     @JsonProperty("Tid")
     @Column(name = "TEAM_ID")
     @Id
-    private String TEAM_ID;
+    private Long TEAM_ID;
 
     @JsonProperty("Tnm")
     @Column(name = "TEAM_NAME")
@@ -33,7 +33,7 @@ public class Team implements Serializable {
     @JoinColumn(name = "LEAGUE_ID", referencedColumnName = "LEAGUE_ID")
     private League league;
 
-    @ManyToMany(mappedBy = "teams")
+    @ManyToMany(mappedBy = "teams", fetch = FetchType.EAGER)
     private Set<User> users = new HashSet<>();
     @Override
     public String toString() {

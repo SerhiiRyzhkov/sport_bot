@@ -1,12 +1,12 @@
 package com.had0uken.sport_bot.service.implementation;
 
+import com.had0uken.sport_bot.model.Team;
 import com.had0uken.sport_bot.model.User;
 import com.had0uken.sport_bot.repository.UserRepository;
 import com.had0uken.sport_bot.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -15,6 +15,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
+
+    @Override
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
 
     @Override
     public boolean isExist(Long chatId) {
@@ -54,6 +59,11 @@ public class UserServiceImpl implements UserService {
         else return "Your data is clear";
     }
 
+    @Override
+    public void addTeam(User user, Team team) {
+        if(!user.getTeams().contains(team))user.getTeams().add(team);
+        userRepository.save(user);
+    }
 
 
 }

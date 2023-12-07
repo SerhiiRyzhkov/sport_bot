@@ -59,6 +59,14 @@ public class League implements Serializable {
     @Column(name = "STAGE_NAME")
     private String stage_name;
 
-    @OneToMany(mappedBy = "league")
+    @OneToMany(mappedBy = "league", fetch = FetchType.EAGER)
     private List<Team> teams;
+
+    @Override
+    public String toString() {
+        return "League{" +
+                "league_id=" + league_id +
+                ", league_name='" + league_name + '\'' +
+                '}';
+    }
 }

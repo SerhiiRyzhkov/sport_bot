@@ -1,6 +1,7 @@
 package com.had0uken.sport_bot.bot;
 
 import com.had0uken.sport_bot.config.BotConfig;
+import com.had0uken.sport_bot.model.Game;
 import com.had0uken.sport_bot.model.League;
 import com.had0uken.sport_bot.model.Team;
 import com.had0uken.sport_bot.model.User;
@@ -123,12 +124,37 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "viewTeam" -> {
                     viewTeam(callbackQuery,editMessageText);
                 }
+                case "checkResults" -> {
+                    checkResults(callbackQuery,editMessageText);
+                }
+
+
 
                 default -> {
 
                 }
             }
         }
+    }
+
+    private void checkResults(CallbackQuery callbackQuery, EditMessageText editMessageText) throws IOException, TelegramApiException {
+        User user = extractUser(callbackQuery);
+        List<Team> teams = user.getTeams();
+        if(teams.isEmpty()){
+            editMessageText.setText("Yor do not have teams in yor list. Add teams to observe their results");
+        }
+        else {
+            String date = "20231211";
+            List<Game> games = JsonHandler.parseResultsFromJson(JsonGetter.getLocalJsonResultsByDate(date));
+
+            StringBuilder sb = new StringBuilder();
+            for (Game game : games)
+                if (teams.contains(game.getTeam1()) || teams.contains(game.getTeam2()))
+                    sb.append(game).append("\n");
+            editMessageText.setText(!sb.isEmpty() ? sb.toString() : "Today your teams did not play");
+        }
+        editMessageText.setReplyMarkup(getBackButtonKit(user,null));
+        execute(editMessageText);
     }
 
     private void viewTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
@@ -208,7 +234,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             ChatMember chatMember = execute(getChatMember);
             String firstName = chatMember.getUser().getFirstName();
-            editMessageText.setReplyMarkup(getButtonsKit());
+            editMessageText.setReplyMarkup(getStartButtonsKit());
             editMessageText.setText("Hello, " + firstName + "!");
             execute(editMessageText);
         } catch (TelegramApiException e) {
@@ -226,7 +252,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         switch (messageText) {
             case "/start" -> {
                 registerUser(update);
-                message.setReplyMarkup(getButtonsKit());
+                message.setReplyMarkup(getStartButtonsKit());
                 message.setText("Hello, " + update.getMessage().getChat().getFirstName() + "!");
             }
 
@@ -269,28 +295,36 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-    private InlineKeyboardMarkup getButtonsKit(){
+    private InlineKeyboardMarkup getStartButtonsKit(){
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
         InlineKeyboardButton button1 = new InlineKeyboardButton();
         InlineKeyboardButton button2 = new InlineKeyboardButton();
         InlineKeyboardButton button3 = new InlineKeyboardButton();
-
+        InlineKeyboardButton button4 = new InlineKeyboardButton();
 
         button1.setText("Add new team");
         button2.setText("Delete a team");
         button3.setText("View my teams");
+        button4.setText("Check results");
+
 
 
         button1.setCallbackData("addTeam");
         button2.setCallbackData("deleteTeam");
         button3.setCallbackData("viewTeam");
+        button4.setCallbackData("checkResults");
 
-        rowInLine.add(button1);
-        rowInLine.add(button2);
-        rowInLine.add(button3);
-        rowsInline.add(rowInLine);
+        rowInLine1.add(button1);
+        rowInLine1.add(button2);
+        rowInLine1.add(button3);
+        rowsInline.add(rowInLine1);
+
+        rowInLine2.add(button4);
+        rowsInline.add(rowInLine2);
+
         markup.setKeyboard(rowsInline);
         return markup;
     }
@@ -348,6 +382,16 @@ public class TelegramBot extends TelegramLongPollingBot {
         markup.setKeyboard(rowsInline);
         return markup;
     }
+
+    private InlineKeyboardMarkup getBackButtonKit(User user, String prefix) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+        rowsInline.add(getBackButton());
+        markup.setKeyboard(rowsInline);
+        return markup;
+    }
+
+
 
     private List<InlineKeyboardButton> getBackButton() {
         List<InlineKeyboardButton> backButtonList = new ArrayList<>();

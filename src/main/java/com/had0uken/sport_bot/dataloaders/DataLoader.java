@@ -37,7 +37,7 @@ public class DataLoader implements CommandLineRunner
 
 
         for(League l: leagues){
-            String json = JsonGetter.getLocalJson(l.getCountry_code());
+            String json = JsonGetter.getLocalJsonTeamsFromCountry(l.getCountry_code());
             List<Team>teams = JsonHandler.parseTeamsFromJson(json,l);
             teamRepository.saveAll(teams);
         }

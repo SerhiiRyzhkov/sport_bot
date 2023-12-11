@@ -9,10 +9,26 @@ import java.io.IOException;
 @Component
 public class JsonGetter {
 
-    static public String getLocalJson(String country_code) {
+    static public String getLocalJsonTeamsFromCountry(String country_code) {
         StringBuilder content = new StringBuilder();
 
         String path="src/main/java/com/had0uken/sport_bot/temp/get_table_"+country_code+".txt";
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return content.toString();
+    }
+
+    static public String getLocalJsonResultsByDate(String date) {
+        StringBuilder content = new StringBuilder();
+
+        String path="src/main/java/com/had0uken/sport_bot/temp/get_results_day.txt";
 
         try (BufferedReader reader = new BufferedReader(new FileReader(path))) {
             String line;

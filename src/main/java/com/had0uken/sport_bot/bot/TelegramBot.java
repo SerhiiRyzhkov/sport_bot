@@ -9,6 +9,8 @@ import com.had0uken.sport_bot.repository.UserRepository;
 import com.had0uken.sport_bot.service.LeagueService;
 import com.had0uken.sport_bot.service.TeamService;
 import com.had0uken.sport_bot.service.UserService;
+import com.had0uken.sport_bot.utility.JsonGetter;
+import com.had0uken.sport_bot.utility.JsonHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -68,6 +71,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/mydata", "get your data stored"));
         listOfCommands.add(new BotCommand("/deletedata", "delete my data"));
         listOfCommands.add(new BotCommand("/help", "info how to use this bot"));
+        listOfCommands.add(new BotCommand("/test", "test"));
+
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -212,7 +217,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-    private void handleCommand(Update update) throws TelegramApiException {
+    private void handleCommand(Update update) throws TelegramApiException, IOException {
         String messageText = update.getMessage().getText();
         long chatID = update.getMessage().getChatId();
         SendMessage message = new SendMessage();
@@ -237,11 +242,19 @@ public class TelegramBot extends TelegramLongPollingBot {
                 message.setText(userService.delete(update.getMessage().getChatId()));
             }
 
+            case "/test" ->{
+                commitTest();
+            }
+
             default -> {
                 message.setText("Sorry, command was not recognized");
             }
         }
         execute(message);
+    }
+
+    private void commitTest() throws IOException {
+        JsonHandler.parseResultsFromJson(JsonGetter.getLocalJsonResultsByDate("20231211"));
     }
 
     private void registerUser(Update update) {
@@ -363,6 +376,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         Optional<User> userOptional = userService.getUserById(id);
         return userOptional.orElse(null);
     }
+
+
 }
 
 

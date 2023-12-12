@@ -4,12 +4,13 @@ import com.had0uken.sport_bot.model.Team;
 import com.had0uken.sport_bot.model.User;
 import com.had0uken.sport_bot.repository.UserRepository;
 import com.had0uken.sport_bot.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -28,7 +29,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void save(User user) {
+    public void save(User user)
+    {
+        log.info("New user was saved: "+user);
         userRepository.save(user);
     }
 
@@ -37,6 +40,7 @@ public class UserServiceImpl implements UserService {
         Optional<User> userOptional = userRepository.findById(chatId);
         if(userOptional.isPresent()){
             userRepository.delete(userOptional.get());
+            log.info("user" + userOptional.get() + " deleted data");
             return "We deleted all your data";
         }
         else {
@@ -53,9 +57,8 @@ public class UserServiceImpl implements UserService {
                     "First Name: "+user.getFirstName()+"\n"+
                     "Last Name: "+user.getLastName()+"\n"+
                     "Registration: "+user.getRegisteredAt()+"\n"+
-                    "Username: :"+user.getUsername()+"\n+"
-                  //  + "Teams: " + user.getTeams()
-                    ;
+                    "Username: :"+user.getUsername()+"\n+" +
+                    "Teams: " + user.getTeams();
         }
         else return "Your data is clear";
     }
@@ -64,12 +67,14 @@ public class UserServiceImpl implements UserService {
     public void addTeam(User user, Team team) {
         if(!user.getTeams().contains(team))user.getTeams().add(team);
         userRepository.save(user);
+        log.info("user" + user + " saved a team: " + team);
     }
 
     @Override
     public void deleteTeam(User user, Team team) {
         user.getTeams().remove(team);
         userRepository.save(user);
+        log.info("user" + user + " deleted a team: " + team);
     }
 
 

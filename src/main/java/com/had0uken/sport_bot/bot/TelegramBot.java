@@ -5,8 +5,6 @@ import com.had0uken.sport_bot.model.Game;
 import com.had0uken.sport_bot.model.League;
 import com.had0uken.sport_bot.model.Team;
 import com.had0uken.sport_bot.model.User;
-import com.had0uken.sport_bot.repository.LeagueRepository;
-import com.had0uken.sport_bot.repository.UserRepository;
 import com.had0uken.sport_bot.service.LeagueService;
 import com.had0uken.sport_bot.service.TeamService;
 import com.had0uken.sport_bot.service.UserService;
@@ -28,13 +26,10 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,13 +37,11 @@ import java.util.Optional;
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
-    @Autowired
-    private LeagueService leagueService;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private TeamService teamService;
     private final BotConfig config;
+    private final LeagueService leagueService;
+    private final UserService userService;
+    private final TeamService teamService;
+    private final KeyboardGenerator keyboardGenerator;
     private static final String ERROR_TEXT = "Error occurred: ";
 
     private static final String BACK_BUTTON = "Back button";
@@ -64,9 +57,14 @@ public class TelegramBot extends TelegramLongPollingBot {
             Type /mydata to view the information that we keep about you
 
             """;
-
-    public TelegramBot(BotConfig config) {
+    @Autowired
+    public TelegramBot(BotConfig config, LeagueService leagueService, UserService userService,
+                       TeamService teamService, KeyboardGenerator keyboardGenerator) {
         this.config = config;
+        this.leagueService = leagueService;
+        this.userService = userService;
+        this.teamService = teamService;
+        this.keyboardGenerator = keyboardGenerator;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "get a welcome message"));
         listOfCommands.add(new BotCommand("/mydata", "get your data stored"));
@@ -114,24 +112,15 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (callbackQuery.getData()) {
                 case BACK_BUTTON ->
                     handleBackButton(callbackQuery,editMessageText);
-
                 case "addTeam" ->
                     addTeam(callbackQuery, editMessageText);
-
                 case "deleteTeam" ->
                     deleteTeam(callbackQuery,editMessageText);
-
-                case "viewTeam" -> {
+                case "viewTeam" ->
                     viewTeam(callbackQuery,editMessageText);
-                }
-                case "checkResults" -> {
+                case "checkResults" ->
                     checkResults(callbackQuery,editMessageText);
-                }
-
-
-
                 default -> {
-
                 }
             }
         }
@@ -153,13 +142,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sb.append(game).append("\n");
             editMessageText.setText(!sb.isEmpty() ? sb.toString() : "Today your teams did not play");
         }
-        editMessageText.setReplyMarkup(getBackButtonKit(user,null));
+        editMessageText.setReplyMarkup(keyboardGenerator.getBackButtonKit(user,null, BACK_BUTTON));
         execute(editMessageText);
     }
 
     private void viewTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
         editMessageText.setText("Your teams:");
-        editMessageText.setReplyMarkup(getButtonsUserTeam(extractUser(callbackQuery),"view_team_"));
+        editMessageText.setReplyMarkup(keyboardGenerator.getButtonsUserTeam(extractUser(callbackQuery),"view_team_", BACK_BUTTON));
         execute(editMessageText);
     }
 
@@ -173,7 +162,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void deleteTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
         editMessageText.setText("Select team to delete");
-        editMessageText.setReplyMarkup(getButtonsUserTeam(extractUser(callbackQuery),"del_team_"));
+        editMessageText.setReplyMarkup(keyboardGenerator.getButtonsUserTeam(extractUser(callbackQuery),"del_team_", BACK_BUTTON));
         execute(editMessageText);
     }
 
@@ -181,7 +170,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void addTeam(CallbackQuery callbackQuery, EditMessageText editMessageText) throws TelegramApiException {
         editMessageText.setText("Select country:");
-        editMessageText.setReplyMarkup(getButtonsLeagues());
+        editMessageText.setReplyMarkup(keyboardGenerator.getButtonsLeagues(leagueService.getAllLeagues(), BACK_BUTTON));
         execute(editMessageText);
     }
 
@@ -191,7 +180,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         Long id = Long.valueOf(callbackQuery.getData().substring(7));
         Optional<League> leagueOptional = leagueService.getLeagueById(id);
         if(leagueOptional.isPresent()){
-            editMessageText.setReplyMarkup(getButtonsTeams(leagueOptional.get()));
+            editMessageText.setReplyMarkup(keyboardGenerator.getButtonsTeams(leagueOptional.get(), BACK_BUTTON));
         }
         else {
             handleBackButton(callbackQuery,editMessageText);
@@ -234,7 +223,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             ChatMember chatMember = execute(getChatMember);
             String firstName = chatMember.getUser().getFirstName();
-            editMessageText.setReplyMarkup(getStartButtonsKit());
+            editMessageText.setReplyMarkup(keyboardGenerator.getStartButtonsKit());
             editMessageText.setText("Hello, " + firstName + "!");
             execute(editMessageText);
         } catch (TelegramApiException e) {
@@ -252,29 +241,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         switch (messageText) {
             case "/start" -> {
                 registerUser(update);
-                message.setReplyMarkup(getStartButtonsKit());
+                message.setReplyMarkup(keyboardGenerator.getStartButtonsKit());
                 message.setText("Hello, " + update.getMessage().getChat().getFirstName() + "!");
             }
-
-            case "/help" -> {
+            case "/help" ->
                 message.setText(HELP_TEXT);
-            }
-
-            case "/mydata" -> {
+            case "/mydata" ->
                 message.setText(userService.getData(update.getMessage().getChatId()));
-            }
-
-            case "/deletedata" -> {
+            case "/deletedata" ->
                 message.setText(userService.delete(update.getMessage().getChatId()));
-            }
-
-            case "/test" ->{
+            case "/test" ->
                 commitTest();
-            }
-
-            default -> {
+            default ->
                 message.setText("Sorry, command was not recognized");
-            }
         }
         execute(message);
     }
@@ -295,112 +274,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
 
-    private InlineKeyboardMarkup getStartButtonsKit(){
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        InlineKeyboardButton button3 = new InlineKeyboardButton();
-        InlineKeyboardButton button4 = new InlineKeyboardButton();
 
-        button1.setText("Add new team");
-        button2.setText("Delete a team");
-        button3.setText("View my teams");
-        button4.setText("Check results");
-
-
-
-        button1.setCallbackData("addTeam");
-        button2.setCallbackData("deleteTeam");
-        button3.setCallbackData("viewTeam");
-        button4.setCallbackData("checkResults");
-
-        rowInLine1.add(button1);
-        rowInLine1.add(button2);
-        rowInLine1.add(button3);
-        rowsInline.add(rowInLine1);
-
-        rowInLine2.add(button4);
-        rowsInline.add(rowInLine2);
-
-        markup.setKeyboard(rowsInline);
-        return markup;
-    }
-
-    private InlineKeyboardMarkup getButtonsLeagues(){
-        List<League> leagues = leagueService.getAllLeagues();
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        for(League l: leagues)
-        {
-            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(l.getLeague_name());
-            button.setCallbackData("league_"+l.getLeague_id());
-            rowInLine.add(button);
-            rowsInline.add(rowInLine);
-        }
-        rowsInline.add(getBackButton());
-        markup.setKeyboard(rowsInline);
-        return markup;
-    }
-
-    private InlineKeyboardMarkup getButtonsTeams(League league){
-        List<Team> teams = league.getTeams();
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        for(Team t: teams)
-        {
-            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(t.getTEAM_NAME());
-            button.setCallbackData("team_"+t.getTEAM_ID());
-            rowInLine.add(button);
-            rowsInline.add(rowInLine);
-        }
-        rowsInline.add(getBackButton());
-        markup.setKeyboard(rowsInline);
-        return markup;
-    }
-
-    private InlineKeyboardMarkup getButtonsUserTeam(User user, String prefix) {
-        List<Team> teams = user.getTeams();
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        for(Team t: teams)
-        {
-            List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(t.getTEAM_NAME());
-            button.setCallbackData(prefix+t.getTEAM_ID());
-            rowInLine.add(button);
-            rowsInline.add(rowInLine);
-        }
-        rowsInline.add(getBackButton());
-        markup.setKeyboard(rowsInline);
-        return markup;
-    }
-
-    private InlineKeyboardMarkup getBackButtonKit(User user, String prefix) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-        rowsInline.add(getBackButton());
-        markup.setKeyboard(rowsInline);
-        return markup;
-    }
-
-
-
-    private List<InlineKeyboardButton> getBackButton() {
-        List<InlineKeyboardButton> backButtonList = new ArrayList<>();
-        InlineKeyboardButton button = new InlineKeyboardButton();
-        button.setText("<< BACK TO MAIN MENU");
-        button.setCallbackData(BACK_BUTTON);
-        backButtonList.add(button);
-        return backButtonList;
-    }
 
     private User extractUser(CallbackQuery callbackQuery){
         ChatMember chatMember = null;
@@ -416,7 +290,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         catch (TelegramApiException e) {
             log.error(ERROR_TEXT + e.getMessage());
         }
-        Long id = chatMember.getUser().getId();
+        Long id = chatMember != null ? chatMember.getUser().getId() : null;
         Optional<User> userOptional = userService.getUserById(id);
         return userOptional.orElse(null);
     }
